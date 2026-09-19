@@ -1,7 +1,7 @@
 {
   "name": "shoshiy-whatsapp-icon",
   "version": "1.0.0",
-  "description": "Zero-dependency floating WhatsApp button with dynamic product-aware pre-filled messages.",
+  "description": "Zero-dependency floating WhatsApp/Telegram button with dynamic product-aware pre-filled messages.",
   "main": "src/shoshiy-whatsapp.js",
   "files": [
     "src/shoshiy-whatsapp.js"
@@ -11,6 +11,7 @@
   },
   "keywords": [
     "whatsapp",
+    "telegram",
     "widget",
     "floating-button",
     "ecommerce",

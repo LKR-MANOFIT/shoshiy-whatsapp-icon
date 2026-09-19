@@ -1,16 +1,17 @@
 # Shoshiy WhatsApp Icon
 
-A tiny, **zero-dependency** floating WhatsApp button you drop onto any storefront
-with a single `<script>` tag. A visitor clicks it and lands in WhatsApp with a
-**pre-filled message that's ready to send**. On a product page the message is
-**dynamic** — it auto-detects the current product (name, price, URL) and drops it
-into the text so you know exactly what the customer is asking about.
+A tiny, **zero-dependency** floating **WhatsApp / Telegram** button you drop onto
+any storefront with a single `<script>` tag. A visitor clicks it and lands in the
+chat app with a **pre-filled message that's ready to send**. On a product page the
+message is **dynamic** — it auto-detects the current product (name, price, URL)
+and drops it into the text so you know exactly what the customer is asking about.
 
-- 🟢 One script tag, no build step, no dependencies (~4 KB).
+- 🟢 One script tag, no build step, no dependencies (~5 KB).
 - 💬 Opens WhatsApp with a pre-written message the visitor just taps *Send* on.
+- ✈️ Optional **Telegram** button too — show WhatsApp, Telegram, or both (stacked).
 - 🛍️ Auto-fills product name / price / link on product detail pages.
 - ⚙️ Configurable via `data-*` attributes or a JS config object.
-- 📱 Works on desktop and mobile (uses `wa.me`).
+- 📱 Works on desktop and mobile.
 
 ---
 
@@ -28,13 +29,39 @@ Add this once, just before `</body>`, on every page of the shop:
   defer></script>
 ```
 
-- `data-phone` is **required** — international format, digits only (country code
-  first, no `+`, no spaces). Example: Turkey `905551112233`.
+- `data-phone` is the WhatsApp number — international format, digits only (country
+  code first, no `+`, no spaces). Example: Turkey `905551112233`.
 - That's it. The button appears bottom-right. On a product page the message is
   auto-filled with the product; everywhere else it uses `data-message`.
 
 > **Self-hosting:** you don't have to use the CDN. Copy `src/shoshiy-whatsapp.js`
 > onto your own server / theme assets and point `src` at it.
+
+### WhatsApp + Telegram together
+
+Set both `data-phone` and `data-telegram` to show two stacked buttons (Telegram
+on top, WhatsApp in the corner). Either one alone works too — you need **at least
+one** of the two.
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/gh/LKR-MANOFIT/shoshiy-whatsapp-icon@main/src/shoshiy-whatsapp.js"
+  data-phone="905551112233"
+  data-telegram="myshopusername"
+  data-label="Message us"
+  defer></script>
+```
+
+> **⚠️ Telegram pre-fill limitation.** Telegram does **not** let a link pre-fill
+> the message for a direct person-to-person chat. So by default the Telegram
+> button just **opens your chat** (`https://t.me/<username>`) with an empty
+> compose box. If you'd rather have the product message pre-filled, set
+> `data-telegram-share="true"` — this uses Telegram's *share* dialog, which
+> carries the pre-filled text but asks the visitor to pick who to send it to.
+> WhatsApp has no such limitation; its message is always pre-filled.
+>
+> `data-telegram` accepts a bare `@username`, a plain `username`, or a full
+> `https://t.me/...` link (used verbatim — handy for group/channel/bot links).
 
 ---
 
@@ -79,15 +106,20 @@ Every option can be set as a `data-*` attribute on the script tag, **or** on a
 `window.ShoshiyWhatsApp` object defined *before* the script loads. Precedence:
 defaults → `data-*` → `window.ShoshiyWhatsApp`.
 
+You need **at least one** of `phone` / `telegram`.
+
 | Option            | `data-*`               | Default                                          | Notes |
 | ----------------- | ---------------------- | ------------------------------------------------ | ----- |
-| `phone`           | `data-phone`           | — (**required**)                                 | Digits only, country code first |
+| `phone`           | `data-phone`           | — (none)                                          | WhatsApp number, digits only, country code first |
+| `telegram`        | `data-telegram`        | — (none)                                          | Telegram `@username`, `username`, or `https://t.me/...` link |
+| `telegramShare`   | `data-telegram-share`  | `false`                                          | `true` = share dialog with pre-filled text (see note above) |
 | `message`         | `data-message`         | `Hello! 👋 I have a question.`                    | Non-product pages |
 | `productMessage`  | `data-product-message` | `Hello! 👋 I'd like to order *{product}*{priceSuffix}.\n{url}` | Product pages |
 | `position`        | `data-position`        | `bottom-right`                                   | `bottom-right` \| `bottom-left` |
-| `color`           | `data-color`           | `#25D366`                                         | Button background |
+| `color`           | `data-color`           | `#25D366`                                         | WhatsApp button background |
+| `telegramColor`   | `data-telegram-color`  | `#229ED9`                                         | Telegram button background |
 | `size`            | `data-size`            | `60`                                             | Button diameter (px) |
-| `label`           | `data-label`           | — (none)                                          | Text shown beside the icon |
+| `label`           | `data-label`           | — (none)                                          | Text shown beside the primary (corner) icon |
 | `greeting`        | `data-greeting`        | — (none)                                          | One-time speech bubble on load |
 | `greetingDelay`   | `data-greeting-delay`  | `1500`                                           | ms before the bubble shows |
 | `offsetX`         | `data-offset-x`        | `20`                                             | px from horizontal edge |
@@ -102,6 +134,7 @@ defaults → `data-*` → `window.ShoshiyWhatsApp`.
 <script>
   window.ShoshiyWhatsApp = {
     phone: "905551112233",
+    telegram: "myshopusername",
     label: "Sipariş için tıkla",
     greeting: "Merhaba! Yardımcı olabilir miyiz? 👋",
     productMessage: "Merhaba, *{product}* ürününü sipariş etmek istiyorum.%0A{url}",
@@ -114,8 +147,13 @@ defaults → `data-*` → `window.ShoshiyWhatsApp`.
 
 ### Programmatic open
 
-`window.ShoshiyWhatsApp.open()` triggers the chat from your own code (e.g. a
-custom "Order on WhatsApp" button).
+Trigger a chat from your own code (e.g. a custom "Order" button):
+
+```js
+window.ShoshiyWhatsApp.open();            // primary channel (WhatsApp if set, else Telegram)
+window.ShoshiyWhatsApp.open("whatsapp");  // force WhatsApp
+window.ShoshiyWhatsApp.open("telegram");  // force Telegram
+```
 
 ---
 

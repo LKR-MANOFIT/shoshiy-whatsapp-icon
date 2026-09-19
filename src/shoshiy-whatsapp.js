@@ -1,13 +1,19 @@
 /*!
- * Shoshiy WhatsApp Icon — a zero-dependency floating WhatsApp button.
+ * Shoshiy Chat Icon — a zero-dependency floating WhatsApp / Telegram button.
  *
- * Drop one <script> tag onto any site. It renders a floating WhatsApp button;
- * clicking it opens WhatsApp with a pre-filled message that is ready to send.
- * On a product page it auto-detects the current product (JSON-LD or Open Graph)
- * and injects the product name / price / URL into the message.
+ * Drop one <script> tag onto any site. It renders a floating chat button (or
+ * both a WhatsApp and a Telegram button, stacked). Clicking opens the chat
+ * app with a pre-filled message that is ready to send. On a product page it
+ * auto-detects the current product (JSON-LD or Open Graph) and injects the
+ * product name / price / URL into the message.
  *
  * Config via data-* attributes on the <script> tag, or a `window.ShoshiyWhatsApp`
  * object defined BEFORE this script loads. See README.md.
+ *
+ * Note on Telegram: Telegram does NOT support pre-filling text for a direct
+ * chat with a person, so by default the Telegram button just opens the chat.
+ * Set `telegramShare: true` to use Telegram's share dialog, which DOES carry a
+ * pre-filled message (but lets the visitor pick the recipient).
  *
  * License: MIT.
  */
@@ -31,7 +37,9 @@
   // ---------------------------------------------------------------------------
 
   var DEFAULTS = {
-    phone: "", // REQUIRED — international format, digits only (e.g. 905551112233)
+    phone: "", // WhatsApp number — international format, digits only (905551112233)
+    telegram: "", // Telegram @username (without @) or a full https://t.me/... link
+    telegramShare: false, // true = use the share dialog (carries a pre-filled text)
     // Message used on non-product pages.
     message: "Hello! 👋 I have a question.",
     // Message used on product detail pages. Placeholders: {product} {price}
@@ -39,8 +47,9 @@
     productMessage: "Hello! 👋 I'd like to order *{product}*{priceSuffix}.\n{url}",
     position: "bottom-right", // bottom-right | bottom-left
     color: "#25D366", // WhatsApp green
+    telegramColor: "#229ED9", // Telegram blue
     size: 60, // button diameter in px
-    label: "", // optional text shown next to the icon (e.g. "Chat with us")
+    label: "", // optional text shown next to the primary (bottom) icon
     greeting: "", // optional speech-bubble shown once on load (e.g. "Need help?")
     greetingDelay: 1500, // ms before the greeting bubble appears
     offsetX: 20, // px from the horizontal edge
@@ -56,10 +65,12 @@
     var d = el.dataset;
     var strs = [
       "phone",
+      "telegram",
       "message",
       "productMessage",
       "position",
       "color",
+      "telegramColor",
       "label",
       "greeting",
       "currency"
@@ -75,6 +86,7 @@
       }
     });
     if (d.detectProduct != null) cfg.detectProduct = d.detectProduct !== "false";
+    if (d.telegramShare != null) cfg.telegramShare = d.telegramShare === "true";
     return cfg;
   }
 
@@ -227,20 +239,39 @@
     });
   }
 
-  function openChat() {
-    var phone = str(cfg.phone).replace(/[^\d]/g, "");
-    if (!phone) {
-      // Fail loud in the console, silent for the visitor.
-      if (window.console) {
-        console.warn(
-          "[Shoshiy WhatsApp] No phone number configured — set data-phone."
-        );
-      }
-      return;
-    }
-    var url =
-      "https://wa.me/" + phone + "?text=" + encodeURIComponent(buildMessage());
+  function openUrl(url) {
     window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function warn(msg) {
+    if (window.console) console.warn("[Shoshiy Chat] " + msg);
+  }
+
+  function openWhatsApp() {
+    var phone = str(cfg.phone).replace(/[^\d]/g, "");
+    if (!phone) return warn("No WhatsApp phone configured — set data-phone.");
+    openUrl("https://wa.me/" + phone + "?text=" + encodeURIComponent(buildMessage()));
+  }
+
+  function openTelegram() {
+    var handle = str(cfg.telegram);
+    if (!handle) return warn("No Telegram handle configured — set data-telegram.");
+    // A full t.me / tg link is used verbatim.
+    if (/^https?:\/\//i.test(handle) || /^tg:/i.test(handle)) return openUrl(handle);
+    handle = handle.replace(/^@/, "");
+    if (cfg.telegramShare) {
+      // Telegram's share dialog DOES carry a pre-filled text (visitor picks the
+      // recipient). Text already contains the product URL, so no separate url.
+      openUrl(
+        "https://t.me/share/url?url=" +
+          encodeURIComponent(location.href) +
+          "&text=" +
+          encodeURIComponent(buildMessage())
+      );
+    } else {
+      // Direct chat — Telegram cannot pre-fill text for a person-to-person chat.
+      openUrl("https://t.me/" + handle);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -252,9 +283,16 @@
     '<path d="M16.003 3.2c-7.06 0-12.8 5.74-12.8 12.8 0 2.26.6 4.46 1.73 6.4L3.2 28.8l6.57-1.72a12.74 12.74 0 0 0 6.23 1.62h.01c7.06 0 12.8-5.74 12.8-12.8s-5.75-12.7-12.81-12.7zm0 23.02h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-4 1.05 1.07-3.9-.25-.4a10.56 10.56 0 0 1-1.62-5.63c0-5.86 4.77-10.63 10.64-10.63 2.84 0 5.5 1.11 7.51 3.12a10.55 10.55 0 0 1 3.11 7.52c0 5.86-4.77 10.62-10.64 10.62zm5.83-7.96c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.03-1 1.24-.18.21-.37.24-.69.08-.32-.16-1.35-.5-2.57-1.58-.95-.85-1.59-1.9-1.78-2.22-.18-.32-.02-.49.14-.65.14-.14.32-.37.48-.55.16-.18.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.71-1.72-.98-2.35-.26-.62-.52-.54-.71-.55l-.6-.01c-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.64s1.13 3.06 1.29 3.27c.16.21 2.22 3.39 5.38 4.76.75.32 1.34.51 1.8.66.76.24 1.44.21 1.98.13.6-.09 1.89-.77 2.16-1.52.27-.75.27-1.38.19-1.52-.08-.13-.29-.21-.61-.37z"/>' +
     "</svg>";
 
+  var TG_ICON =
+    '<svg viewBox="0 0 24 24" width="58%" height="58%" fill="#fff" aria-hidden="true">' +
+    '<path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>' +
+    "</svg>";
+
   function injectStyles() {
     if (document.getElementById("shoshiy-wa-styles")) return;
     var side = cfg.position === "bottom-left" ? "left" : "right";
+    var rowDir = side === "left" ? "row" : "row-reverse";
+    var alignItems = side === "left" ? "flex-start" : "flex-end";
     var css =
       "" +
       ".shoshiy-wa-wrap{position:fixed;bottom:" +
@@ -265,24 +303,21 @@
       cfg.offsetX +
       "px;z-index:" +
       cfg.zIndex +
-      ";display:flex;align-items:center;gap:10px;flex-direction:" +
-      (side === "left" ? "row" : "row-reverse") +
+      ";display:flex;flex-direction:column;gap:12px;align-items:" +
+      alignItems +
       ";font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}" +
+      ".shoshiy-ch-row{display:flex;align-items:center;gap:10px;flex-direction:" +
+      rowDir +
+      "}" +
       ".shoshiy-wa-btn{width:" +
       cfg.size +
       "px;height:" +
       cfg.size +
-      "px;border-radius:50%;background:" +
-      cfg.color +
-      ";border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s ease,box-shadow .15s ease;padding:0}" +
+      "px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s ease,box-shadow .15s ease;padding:0}" +
       ".shoshiy-wa-btn:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.3)}" +
-      ".shoshiy-wa-btn:focus-visible{outline:3px solid rgba(37,211,102,.5);outline-offset:2px}" +
+      ".shoshiy-wa-btn:focus-visible{outline:3px solid rgba(0,0,0,.25);outline-offset:2px}" +
       ".shoshiy-wa-label{background:#fff;color:#111;padding:8px 12px;border-radius:20px;font-size:14px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.15);white-space:nowrap}" +
-      ".shoshiy-wa-bubble{position:absolute;bottom:" +
-      (cfg.size + 14) +
-      "px;" +
-      side +
-      ":0;background:#fff;color:#111;padding:10px 14px;border-radius:14px;font-size:14px;max-width:220px;box-shadow:0 4px 16px rgba(0,0,0,.18);opacity:0;transform:translateY(6px);transition:opacity .25s ease,transform .25s ease;pointer-events:none}" +
+      ".shoshiy-wa-bubble{background:#fff;color:#111;padding:10px 14px;border-radius:14px;font-size:14px;max-width:220px;box-shadow:0 4px 16px rgba(0,0,0,.18);opacity:0;transform:translateY(6px);transition:opacity .25s ease,transform .25s ease;display:none}" +
       ".shoshiy-wa-bubble.show{opacity:1;transform:translateY(0)}" +
       "@media (prefers-reduced-motion:reduce){.shoshiy-wa-btn,.shoshiy-wa-bubble{transition:none}}";
     var style = document.createElement("style");
@@ -291,48 +326,100 @@
     document.head.appendChild(style);
   }
 
+  // Channels are rendered top-to-bottom; the LAST one sits in the corner and is
+  // the "primary" (it gets the optional text label).
+  function buildChannels() {
+    var channels = [];
+    if (cfg.telegram) {
+      channels.push({
+        color: cfg.telegramColor,
+        icon: TG_ICON,
+        aria: "Chat on Telegram",
+        open: openTelegram
+      });
+    }
+    if (cfg.phone) {
+      channels.push({
+        color: cfg.color,
+        icon: WA_ICON,
+        aria: "Chat on WhatsApp",
+        open: openWhatsApp
+      });
+    }
+    return channels;
+  }
+
   function render() {
+    var channels = buildChannels();
+    if (channels.length === 0) {
+      return warn("Nothing to show — set data-phone and/or data-telegram.");
+    }
     injectStyles();
 
     var wrap = document.createElement("div");
     wrap.className = "shoshiy-wa-wrap";
 
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "shoshiy-wa-btn";
-    btn.setAttribute("aria-label", cfg.label || "Chat on WhatsApp");
-    btn.innerHTML = WA_ICON;
-    btn.addEventListener("click", openChat);
-
-    wrap.appendChild(btn);
-
-    if (cfg.label) {
-      var label = document.createElement("span");
-      label.className = "shoshiy-wa-label";
-      label.textContent = cfg.label; // textContent → no HTML injection
-      wrap.appendChild(label);
-    }
-
+    // Optional greeting bubble (top of the stack).
+    var bubble = null;
     if (cfg.greeting) {
-      var bubble = document.createElement("div");
+      bubble = document.createElement("div");
       bubble.className = "shoshiy-wa-bubble";
-      bubble.textContent = cfg.greeting;
+      bubble.textContent = cfg.greeting; // textContent → no HTML injection
       wrap.appendChild(bubble);
       setTimeout(function () {
-        bubble.classList.add("show");
+        bubble.style.display = "block";
+        // Next frame so the transition runs.
+        requestAnimationFrame(function () {
+          bubble.classList.add("show");
+        });
       }, cfg.greetingDelay);
-      // Hide the greeting once the button is used.
-      btn.addEventListener("click", function () {
-        bubble.classList.remove("show");
-      });
     }
+
+    channels.forEach(function (ch, idx) {
+      var isPrimary = idx === channels.length - 1;
+      var row = document.createElement("div");
+      row.className = "shoshiy-ch-row";
+
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "shoshiy-wa-btn";
+      btn.style.backgroundColor = ch.color;
+      btn.setAttribute("aria-label", ch.aria);
+      btn.innerHTML = ch.icon;
+      btn.addEventListener("click", function () {
+        if (bubble) bubble.classList.remove("show");
+        ch.open();
+      });
+      row.appendChild(btn);
+
+      if (isPrimary && cfg.label) {
+        var label = document.createElement("span");
+        label.className = "shoshiy-wa-label";
+        label.textContent = cfg.label;
+        row.appendChild(label);
+      }
+
+      wrap.appendChild(row);
+    });
 
     document.body.appendChild(wrap);
   }
 
-  // Public API — lets a host page reconfigure / re-open programmatically.
+  // Public API — lets a host page open a channel programmatically.
+  //   ShoshiyWhatsApp.open()            → primary channel
+  //   ShoshiyWhatsApp.open("telegram")  → Telegram
+  //   ShoshiyWhatsApp.open("whatsapp")  → WhatsApp
+  function openChannel(which) {
+    if (which === "telegram") return openTelegram();
+    if (which === "whatsapp") return openWhatsApp();
+    if (cfg.phone) return openWhatsApp();
+    return openTelegram();
+  }
+
   window.ShoshiyWhatsApp = assign(userCfg, {
-    open: openChat,
+    open: openChannel,
+    openWhatsApp: openWhatsApp,
+    openTelegram: openTelegram,
     config: cfg
   });
 
