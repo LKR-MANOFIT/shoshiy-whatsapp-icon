@@ -3,11 +3,18 @@
   "version": "1.0.0",
   "description": "Zero-dependency floating WhatsApp/Telegram button with dynamic product-aware pre-filled messages.",
   "main": "src/shoshiy-whatsapp.js",
+  "unpkg": "dist/shoshiy-whatsapp.min.js",
+  "jsdelivr": "dist/shoshiy-whatsapp.min.js",
   "files": [
-    "src/shoshiy-whatsapp.js"
+    "src/shoshiy-whatsapp.js",
+    "dist/shoshiy-whatsapp.min.js"
   ],
   "scripts": {
+    "build": "esbuild src/shoshiy-whatsapp.js --minify --legal-comments=inline --outfile=dist/shoshiy-whatsapp.min.js",
     "demo": "echo \"Open demo/index.html or demo/product.html in a browser.\""
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.0"
   },
   "keywords": [
     "whatsapp",

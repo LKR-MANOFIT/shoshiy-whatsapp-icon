@@ -34,7 +34,13 @@ Add this once, just before `</body>`, on every page of the shop:
 - That's it. The button appears bottom-right. On a product page the message is
   auto-filled with the product; everywhere else it uses `data-message`.
 
-> **Self-hosting:** you don't have to use the CDN. Copy `src/shoshiy-whatsapp.js`
+> **Minified build:** for production use the smaller minified file —
+> `dist/shoshiy-whatsapp.min.js` (same API, ~9 KB). Swap `src/…` for `dist/…min.js`
+> in the CDN URL, e.g.
+> `https://cdn.jsdelivr.net/gh/LKR-MANOFIT/shoshiy-whatsapp-icon@main/dist/shoshiy-whatsapp.min.js`.
+>
+> **Self-hosting:** you don't have to use the CDN. Copy either
+> `src/shoshiy-whatsapp.js` (readable) or `dist/shoshiy-whatsapp.min.js` (minified)
 > onto your own server / theme assets and point `src` at it.
 
 ### WhatsApp + Telegram together
@@ -175,6 +181,16 @@ JSON-LD + Open Graph product data) in a browser to see the default vs. dynamic
 message. Set your own number at the top of each file first.
 
 ---
+
+## Build
+
+The committed `dist/shoshiy-whatsapp.min.js` is generated from
+`src/shoshiy-whatsapp.js`. To rebuild after editing the source:
+
+```bash
+npm install   # one-time, pulls esbuild
+npm run build
+```
 
 ## License
 
