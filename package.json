@@ -1,0 +1,25 @@
+{
+  "name": "shoshiy-whatsapp-icon",
+  "version": "1.0.0",
+  "description": "Zero-dependency floating WhatsApp button with dynamic product-aware pre-filled messages.",
+  "main": "src/shoshiy-whatsapp.js",
+  "files": [
+    "src/shoshiy-whatsapp.js"
+  ],
+  "scripts": {
+    "demo": "echo \"Open demo/index.html or demo/product.html in a browser.\""
+  },
+  "keywords": [
+    "whatsapp",
+    "widget",
+    "floating-button",
+    "ecommerce",
+    "storefront",
+    "click-to-chat"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LKR-MANOFIT/shoshiy-whatsapp-icon.git"
+  }
+}
